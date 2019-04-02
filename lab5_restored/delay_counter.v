@@ -23,36 +23,31 @@ begin
 	if(start == 1'b1)
 	begin
 		internal_delay = delay;
-		loaded = 1'd1;
 		counter1 = 21'd0;
 		counter2 = internal_delay;
 	end
 	
 	if (enable == 1'b1)
 	begin
-		if (loaded == 1'b1)
+		if (counter1 < COUNTER1)
 		begin
-			if (counter1 < COUNTER1)
+			counter1 = counter1 + 21'd1;
+		end
+		else if (counter1 >= COUNTER1)
+		begin
+			if (counter2 > 0)
 			begin
-				counter1 = counter1 + 21'd1;
+				counter2 = counter2 - 21'd1;
 			end
-			else if (counter1 >= COUNTER1)
+			else if (counter2 <= 0)
 			begin
-				if (counter2 > 0)
-				begin
-					counter2 = counter2 - 21'd1;
-				end
-				else if (counter2 <= 0)
-				begin
-					done_reg = 1'b1;
-				end
+				done_reg = 1'b1;
 			end
 		end
 	end
 	else if (enable == 1'b0)
 	begin
 		done_reg = 1'b0;
-		loaded = 1'd0;
 		counter1 = 21'd0;
 		counter2 = 21'd0;
 	end

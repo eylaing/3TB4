@@ -28,32 +28,183 @@ reg [4:0] state;
 reg [4:0] next_state_logic; // NOT REALLY A REGISTER!!!
 
 // Next state logic
-
-
-// State register
-
-
-// Output logic
-always @(br or brz or addi or subi or sr0 or srh0)
+always @(*)
 begin
-	if (addi==1'b1) begin
-		select_immediate <= 2'b00;
-		op1_mux_select <= 2'b01;
-		op2_mux_select <= 2'b01;
-		alu_set_low <= 1'b0;
-		alu_set_high <= 1'b0;
-		alu_add_sub <= 1'b0;
-		result_mux_select <= 1'b1;
-		select_write_address <= 2'b01;
-		
-		//wait a clock cycle??
-		write_reg_file <= 1'b1;
-		increment_pc <= 1'b1;
-	end
-	else begin
-		increment_pc <= 1'b0;
-	end
-
+	case (state)
+	RESET:
+		next_state_logic = FETCH;
+	FETCH:
+		next_state_logic = DECODE;
+	DECODE:
+		if (addi)
+			next_state_logic = ADDI;
+		else if (subi)
+			next_state_logic = SUBI;
+		else if (mov)
+			next_state_logic = MOV;
+		else if (sr0)
+			next_state_logic = SR0;
+		else if (srh0)
+			next_state_logic = SRH0;
+		else if (clr)
+			next_state_logic = CLR;
+		else if (br) 
+			next_state_logic = BR;
+		else if (brz)
+			next_state_logic = BRZ;
+		else if (movr)
+			next_state_logic = MOVR;
+		else if (movrhs)
+			next_state_logic = MOVRHS;
+		else if (pause)
+			next_state_logic = PAUSE;
+	ADDI:
+		next_state_logic = FETCH;
+	SUBI:
+		next_state_logic = FETCH;
+	MOV:
+		next_state_logic = FETCH;
+	SR0:
+		next_state_logic = FETCH;
+	SRH0:
+		next_state_logic = FETCH;
+	CLR:
+		next_state_logic = FETCH;
+	BR:
+		next_state_logic = FETCH;
+	BRZ:
+		next_state_logic = FETCH;
+	MOVR:
+		next_state_logic = MOVR_STAGE2;
+	MOVR_STAGE2:
+		if (temp_is_zero)
+			next_state_logic = FETCH;
+		else 
+			next_state_logic = MOVR_DELAY;
+	MOVR_DELAY:
+		if (delay_done)
+			next_state_logic = MOVR_STAGE2;
+		else 
+			next_state_logic = MOVR_DELAY;
+	MOVRHS:
+		next_state_logic = MOVRHS_STAGE2;
+	MOVRHS_STAGE2:
+		if (temp_is_zero)
+			next_state_logic = FETCH;
+		else 
+			next_state_logic = MOVRHS_DELAY;
+	MOVRHS_DELAY:
+		if (delay_done)
+			next_state_logic = MOVRHS_STAGE2;
+		else 
+			next_state_logic = MOVRHS_DELAY;
+	PAUSE:
+		next_state_logic = PAUSE_DELAY;
+	PAUSE_DELAY:
+		if (delay_done)
+			next_state_logic = FETCH;
+		else
+			next_state_logic = PAUSE_DELAY;
+	default:
+		next_state_logic = RESET;
+	endcase
+end
+// State register
+always @(posedge clk)
+begin
+	if (!reset_n)
+		state = RESET;
+	else
+		state = next_state_logic;
+end
+// Output logic
+always @(*)
+begin
+	write_reg_file = 1'b0;
+	result_mux_select = 1'b0;
+	op1_mux_select = 2'b00;
+	op2_mux_select = 2'b00;
+	start_delay_counter = 1'b0;
+	enable_delay_counter = 1'b0;
+	commit_branch = 1'b0;
+	increment_pc = 1'b0;
+	alu_add_sub = 1'b0;
+	alu_set_low = 1'b0;
+	alu_set_high = 1'b0;
+	load_temp_register = 1'b0;
+	increment_temp_register = 1'b0;
+	decrement_temp_register = 1'b0;
+	select_immediate = 2'b00;
+	select_write_address = 2'b00;
+	case (state)
+		ADDI:
+		begin
+			select_immediate = 2'b00;
+			op1_mux_select = 2'b01;
+			op2_mux_select = 2'b01;
+			alu_add_sub = 1'b0;
+			result_mux_select = 1'b1;
+			write_reg_file = 1'b1;
+			select_write_address = 2'b01;
+			increment_pc = 1'b1;
+		end
+		SUBI:
+		begin
+			select_immediate = 2'b00;
+			op1_mux_select = 2'b01;
+			op2_mux_select = 2'b01;
+			alu_add_sub = 1'b1;
+			result_mux_select = 1'b1;
+			write_reg_file = 1'b1;
+			select_write_address = 2'b01;
+			increment_pc = 1'b1;
+		end
+		PAUSE:
+		begin
+			start_delay_counter = 1'b1;
+		end
+		PAUSE_DELAY:
+		begin
+			enable_delay_counter = 1'b1;
+			if (delay_done)
+				increment_pc = 1'b1;
+		end
+		MOVR:
+		begin
+			load_temp_register = 1'b1;
+		end
+		MOVR_STAGE2:
+		begin
+			if (temp_is_zero)
+				increment_pc = 1'b1;
+			else 
+			begin
+				if (temp_is_positive)
+				begin
+					decrement_temp_register = 1'b1;
+					op1_mux_select = 2'b11;
+					op2_mux_select = 2'b11;
+					alu_add_sub = 1'b0;
+					result_mux_select = 1'b1;
+					write_reg_file = 1'b1;
+					select_write_address = 2'b11;
+				end
+				else
+				begin
+					increment_temp_register = 1'b1;
+					op1_mux_select = 2'b11;
+					op2_mux_select = 2'b11;
+					alu_add_sub = 1'b1;
+					result_mux_select = 1'b1;
+					write_reg_file = 1'b1;
+					select_write_address = 2'b11;
+				end
+				start_delay_counter = 1'b1;
+			end
+		end
+		MOVR_DELAY:
+			enable_delay_counter = 1'b1;
+	endcase
 end
 
 endmodule

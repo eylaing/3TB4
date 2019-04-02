@@ -7,10 +7,10 @@ module result_mux (
 always @(*)
 begin
 	case (select_result)
-		1'b00: begin
+		1'b0: begin
 			result <= 8'b0000;
 		end
-		1'b01: begin
+		1'b1: begin
 			result <= alu_result;
 		end
 	
