@@ -1,0 +1,8 @@
+lab5_restored/db/*
+lab5_restored/output_files/*
+lab5_restored/instruction_rom.*
+lab5_restored/stepper_rom.*
+lab5_restored/simulation/*
+lab5_restored/incremental_db/*
+lab5.qar
+lab5.qarlog
