@@ -159,14 +159,65 @@ begin
 			select_write_address = 2'b01;
 			increment_pc = 1'b1;
 		end
-		PAUSE:
+		MOV:
 		begin
-			start_delay_counter = 1'b1;
+			select_immediate = 2'b11;
+			op1_mux_select = 2'b01;
+			op2_mux_select = 2'b01;
+			alu_add_sub = 1'b0;
+			result_mux_select = 1'b1;
+			write_reg_file = 1'b1;
+			select_write_address = 2'b10;
+			increment_pc = 1'b1;
 		end
-		PAUSE_DELAY:
+		SR0:
 		begin
-			enable_delay_counter = 1'b1;
-			if (delay_done)
+			select_immediate = 2'b01;
+			op1_mux_select = 2'b10;
+			op2_mux_select = 2'b01;
+			alu_set_low = 1'b1;
+			result_mux_select = 1'b1;
+			write_reg_file = 1'b1;
+			select_write_address = 2'b00;
+			increment_pc = 1'b1;
+		end
+		SRH0:
+		begin
+			select_immediate = 2'b01;
+			op1_mux_select = 2'b10;
+			op2_mux_select = 2'b01;
+			alu_set_high = 1'b1;
+			result_mux_select = 1'b1;
+			write_reg_file = 1'b1;
+			select_write_address = 2'b00;
+			increment_pc = 1'b1;
+		end
+		CLR:
+		begin
+			result_mux_select = 1'b0;
+			write_reg_file = 1'b1;
+			select_write_address = 2'b01;
+			increment_pc = 1'b1;
+		end
+		BR:
+		begin
+			op1_mux_select = 2'b00;
+			op2_mux_select = 2'b01;
+			select_immediate = 2'b10;
+			alu_add_sub = 1'b0;
+			commit_branch = 1'b1;
+		end
+		BRZ:
+		begin
+			if (register0_is_zero)
+			begin
+				op1_mux_select = 2'b00;
+				op2_mux_select = 2'b01;
+				select_immediate = 2'b10;
+				alu_add_sub = 1'b0;
+				commit_branch = 1'b1;
+			end
+			else
 				increment_pc = 1'b1;
 		end
 		MOVR:
@@ -204,6 +255,51 @@ begin
 		end
 		MOVR_DELAY:
 			enable_delay_counter = 1'b1;
+		MOVRHS:
+		begin
+			load_temp_register = 1'b1;
+		end
+		MOVRHS_STAGE2:
+		begin
+			if (temp_is_zero)
+				increment_pc = 1'b1;
+			else 
+			begin
+				if (temp_is_positive)
+				begin
+					decrement_temp_register = 1'b1;
+					op1_mux_select = 2'b11;
+					op2_mux_select = 2'b10;
+					alu_add_sub = 1'b0;
+					result_mux_select = 1'b1;
+					write_reg_file = 1'b1;
+					select_write_address = 2'b11;
+				end
+				else
+				begin
+					increment_temp_register = 1'b1;
+					op1_mux_select = 2'b11;
+					op2_mux_select = 2'b10;
+					alu_add_sub = 1'b1;
+					result_mux_select = 1'b1;
+					write_reg_file = 1'b1;
+					select_write_address = 2'b11;
+				end
+				start_delay_counter = 1'b1;
+			end
+		end
+		MOVRHS_DELAY:
+			enable_delay_counter = 1'b1;
+		PAUSE:
+		begin
+			start_delay_counter = 1'b1;
+		end
+		PAUSE_DELAY:
+		begin
+			enable_delay_counter = 1'b1;
+			if (delay_done)
+				increment_pc = 1'b1;
+		end
 	endcase
 end
 

@@ -9,8 +9,8 @@ begin
 		2'b01: begin //4 bit immediate (bit 3 thru 0)
 			immediate <= {{4{1'b0}},instruction[3:0]};
 		end
-		2'b10: begin //5 bit immediate (bit 4 thru 0)
-			immediate <= {{3{1'b0}},instruction[4:0]};
+		2'b10: begin //5 bit immediate (bit 4 thru 0) w/sign extension
+			immediate <= {{3{instruction[4]}},instruction[4:0]};
 		end
 		2'b11: begin //MOV instruction
 			immediate <= 8'b0000;		
