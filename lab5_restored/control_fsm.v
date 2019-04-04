@@ -24,7 +24,7 @@ parameter RESET=5'b00000, FETCH=5'b00001, DECODE=5'b00010,
 			MOVR_DELAY=5'b10000, MOVRHS_STAGE2=5'b10001, MOVRHS_DELAY=5'b10010,
 			PAUSE_DELAY=5'b10011;
 
-reg [4:0] state;
+reg [4:0] state/*synthesis keep*/;
 reg [4:0] next_state_logic; // NOT REALLY A REGISTER!!!
 
 // Next state logic
@@ -36,6 +36,7 @@ begin
 	FETCH:
 		next_state_logic = DECODE;
 	DECODE:
+	begin
 		if (addi)
 			next_state_logic = ADDI;
 		else if (subi)
@@ -58,6 +59,7 @@ begin
 			next_state_logic = MOVRHS;
 		else if (pause)
 			next_state_logic = PAUSE;
+	end
 	ADDI:
 		next_state_logic = FETCH;
 	SUBI:
@@ -77,34 +79,44 @@ begin
 	MOVR:
 		next_state_logic = MOVR_STAGE2;
 	MOVR_STAGE2:
+	begin
 		if (temp_is_zero)
 			next_state_logic = FETCH;
 		else 
 			next_state_logic = MOVR_DELAY;
+		end
 	MOVR_DELAY:
+	begin
 		if (delay_done)
 			next_state_logic = MOVR_STAGE2;
 		else 
 			next_state_logic = MOVR_DELAY;
+		end
 	MOVRHS:
 		next_state_logic = MOVRHS_STAGE2;
 	MOVRHS_STAGE2:
+		begin
 		if (temp_is_zero)
 			next_state_logic = FETCH;
 		else 
 			next_state_logic = MOVRHS_DELAY;
+		end
 	MOVRHS_DELAY:
+	begin
 		if (delay_done)
 			next_state_logic = MOVRHS_STAGE2;
 		else 
 			next_state_logic = MOVRHS_DELAY;
+		end
 	PAUSE:
 		next_state_logic = PAUSE_DELAY;
 	PAUSE_DELAY:
+	begin
 		if (delay_done)
 			next_state_logic = FETCH;
 		else
 			next_state_logic = PAUSE_DELAY;
+			end
 	default:
 		next_state_logic = RESET;
 	endcase
@@ -118,7 +130,7 @@ begin
 		state = next_state_logic;
 end
 // Output logic
-always @(*)
+always @(state)
 begin
 	write_reg_file = 1'b0;
 	result_mux_select = 1'b0;
